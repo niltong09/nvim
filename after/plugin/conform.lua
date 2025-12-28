@@ -11,6 +11,11 @@ if not ok then
 end
 
 conform.setup({
+    formatters = {
+        phpcbf = {
+            prepend_args = { "--standard=PSR12" },
+        },
+    },
 	formatters_by_ft = {
 		lua = { "stylua" },
 		javascript = { "prettier" },

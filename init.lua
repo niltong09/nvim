@@ -63,7 +63,12 @@ vim.schedule(function()
 end)
 
 -- Enable break indent
-vim.o.breakindent = true
+vim.o.breakindent = false
+vim.o.autoindent = true
+vim.o.smartindent = true
+vim.cmd('filetype plugin indent on')
+vim.g.php_folding = 1
+vim.g.PHP_autoformatcomment = 1
 
 -- Save undo history
 vim.o.undofile = true

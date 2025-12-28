@@ -23,7 +23,7 @@ ts.setup({
       },
       indent = { enable = true, disable = { 'ruby' } },
 })
-vim.cmd(":TSUpdate<CR>")
+vim.cmd(":TSUpdate<CR><CR>")
 ts.install({ 
 'bash', 
 'c', 
