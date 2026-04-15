@@ -63,7 +63,7 @@ vim.schedule(function()
 end)
 
 -- Enable break indent
-vim.o.breakindent = false
+vim.o.breakindent = true
 vim.o.autoindent = true
 vim.o.smartindent = true
 vim.cmd('filetype plugin indent on')
@@ -180,6 +180,7 @@ vim.keymap.set('n', '<C-u>', '<C-u>zz')
 vim.keymap.set('i', '<C-c>', '<Esc>')
 vim.keymap.set('n', '<C-s>', ':up<CR>')
 vim.keymap.set('n', '<C-q>', ':q<CR>')
+vim.keymap.set('n', '<C-g>', ':G<CR>')
 
 function open_netrw_cfd()
   local fn = vim.api.nvim_buf_get_name(0)
@@ -275,4 +276,172 @@ autocmd('BufWinEnter', {
     end
   end,
   group = save_fold,
+})
+
+local function run_realtime_float(command)
+  -- 1. Create a scratch buffer
+  local buf = vim.api.nvim_create_buf(false, true)
+  
+  -- 2. Calculate window size/position (same as before)
+  local width = math.floor(vim.o.columns * 0.8)
+  local height = math.floor(vim.o.lines * 0.8)
+  local opts = {
+    relative = "editor",
+    width = width, height = height,
+    row = math.floor((vim.o.lines - height) / 2),
+    col = math.floor((vim.o.columns - width) / 2),
+    style = "minimal", border = "rounded",
+    title = " Running: " .. command .. " ", title_pos = "center",
+  }
+  
+  -- 3. Open the window
+  local win = vim.api.nvim_open_win(buf, true, opts)
+  
+  -- 4. Define the callback to append text
+  local append_data = function(_, data)
+    if data then
+      -- Filter out empty lines if necessary
+      vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
+      -- Auto-scroll to the bottom
+      vim.api.nvim_win_set_cursor(win, {vim.api.nvim_buf_line_count(buf), 0})
+    end
+  end
+
+  -- 5. Start the Job
+  vim.fn.jobstart(command, {
+    stdout_buffered = false, -- Crucial for real-time
+    on_stdout = append_data,
+    on_stderr = append_data,
+    on_exit = function()
+      vim.api.nvim_buf_set_lines(buf, -1, -1, false, { "", "--- Process Finished ---" })
+    end
+  })
+
+  -- Close window with 'q'
+  vim.keymap.set("n", "q", "<cmd>close<cr>", { buffer = buf, silent = true })
+end
+local function get_php_class_silent()
+  -- pcall wraps the logic to catch any errors and return 'false' instead of crashing
+  local status, result = pcall(function()
+    local bufnr = vim.api.nvim_get_current_buf()
+    
+    -- Ensure we are actually in a PHP file
+    if vim.bo[bufnr].filetype ~= "php" then return nil end
+
+    -- Get the node under the cursor
+    local node = vim.treesitter.get_node()
+    if not node then return nil end
+
+    -- Walk up the tree to find the class declaration
+    local current = node
+    while current do
+      if current:type() == "class_declaration" then
+        -- In PHP grammar, the 'name' field points to the class identifier
+        local name_node = current:field("name")[1]
+        if name_node then
+          return vim.treesitter.get_node_text(name_node, bufnr)
+        end
+      end
+      current = current:parent()
+    end
+    
+    return nil
+  end)
+
+  -- If status is true, result is the class name (or nil). 
+  -- If status is false (error), we return nil silently.
+  return status and result or nil
+end
+
+local function get_php_context_silent()
+  local status, result = pcall(function()
+    local bufnr = vim.api.nvim_get_current_buf()
+    if vim.bo[bufnr].filetype ~= "php" then return nil end
+
+    local node = vim.treesitter.get_node()
+    if not node then return nil end
+
+    local context = { class = nil, method = nil }
+    local current = node
+
+    while current do
+      local type = current:type()
+
+      -- Check for Method (Function inside a class)
+      if type == "method_declaration" and not context.method then
+        local name_node = current:field("name")[1]
+        if name_node then
+          context.method = vim.treesitter.get_node_text(name_node, bufnr)
+        end
+      end
+
+      -- Check for Class
+      if type == "class_declaration" and not context.class then
+        local name_node = current:field("name")[1]
+        if name_node then
+          context.class = vim.treesitter.get_node_text(name_node, bufnr)
+        end
+      end
+
+      current = current:parent()
+    end
+
+    -- Only return if we are strictly inside a method
+    if context.method then
+      return context
+    end
+    
+    return nil
+  end)
+
+  return status and result or nil
+end
+
+local function roda_teste_php()
+    if vim.bo.filetype ~= 'php' then
+        return
+    end
+    local project_root = vim.fs.root(0, { ".git", "composer.json", "artisan" })
+    if project_root == nil then
+        return
+    end
+
+    local art_path = project_root .. '/artisan'
+    local stat = vim.uv.fs_stat(art_path)
+    if not(stat and stat.type == 'file') then
+        return
+    end
+    local ctx = get_php_context_silent()
+    if not ctx then
+        vim.notify("Class definition not found")
+        return
+    end
+    if not ctx.class then
+        vim.notify("Class definition not found")
+        return
+    end
+    local filter = ctx.class
+    local is_test_class = ctx.class:match("Test$")
+    if not is_test_class then
+        return
+    end
+    if ctx.method then
+        local is_test_method = ctx.method:match("^test")
+        if is_test_method then
+            filter = ctx.class .. '::' .. ctx.method
+        end
+    end
+
+
+    local command = string.format("php %s test --filter %s", art_path, filter)
+    run_realtime_float(command)
+end
+
+vim.api.nvim_create_user_command("RunTests", 
+function()
+    roda_teste_php()
+end, 
+{
+nargs = 0,
+desc = "Roda testes"
 })

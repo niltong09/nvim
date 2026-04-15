@@ -36,7 +36,7 @@ Balls:register("git@github.com:L3MON4D3/LuaSnip.git", {
             if result.code ~= 0 then
                 error("LuaSnip build errored" .. vim.trim(result.stderr))
             end
-            vim.notify("LuaSnip jsregexp installed")
+            -- vim.notify("LuaSnip jsregexp installed")
         end
     ))
     end,

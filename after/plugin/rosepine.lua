@@ -7,7 +7,6 @@ Balls:register("git@github.com:rose-pine/neovim.git", {
 local ok, rosepine = pcall(require, "rose-pine")
 
 if not ok then
-	vim.notify("rose pine not found")
 	return
 end
 

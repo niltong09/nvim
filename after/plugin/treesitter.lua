@@ -45,28 +45,16 @@ ts.install({
 'json',
 })
 
-vim.api.nvim_create_autocmd('BufEnter', {
-    pattern = { 
-    '*.blade.php', 
-    '*.php', 
-    '*.lua',
-    '*.go',
-    '*.templ',
-    '*.sh',
-    '*.html',
-    '*.c',
-    '*.h',
-    '*.cpp',
-    '*.md',
-    '*.txt',
-    '*.js',
-    '*.jsx',
-    '*.ts',
-    '*.tsx',
-    '*.json',
-    },
-    callback = function() 
-        vim.treesitter.start() 
+vim.api.nvim_create_autocmd('FileType', {
+    group = vim.api.nvim_create_augroup('my.tree-sitter',{ clear = true }),
+    callback = function(event)
+        local ok, treesitter = pcall(require, "nvim-treesitter")
+        if ok and vim.tbl_contains(treesitter.get_installed(), event.match) then
+            vim.treesitter.start(event.buf, event.match)
+            vim.o.breakindent = true
+            vim.o.autoindent = true
+            vim.o.smartindent = true
+        end
     end,
 })
 
