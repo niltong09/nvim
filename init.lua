@@ -175,9 +175,12 @@ vim.keymap.set('v', '<C-d>', '<C-d>zz')
 vim.keymap.set('v', '<C-u>', '<C-u>zz')
 vim.keymap.set('n', '<C-d>', '<C-d>zz')
 vim.keymap.set('n', '<C-u>', '<C-u>zz')
+vim.keymap.set('v', '<PageDown>', '<C-d>zz')
+vim.keymap.set('v', '<PageUp>', '<C-u>zz')
+vim.keymap.set('n', '<PageDown>', '<C-d>zz')
+vim.keymap.set('n', '<PageUp>', '<C-u>zz')
 
 -- map control c to esc
-vim.keymap.set('i', '<C-c>', '<Esc>')
 vim.keymap.set('n', '<C-s>', ':up<CR>')
 vim.keymap.set('n', '<C-q>', ':q<CR>')
 vim.keymap.set('n', '<C-g>', ':G<CR>')
